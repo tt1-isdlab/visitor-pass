@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "robofest-visitor-pass",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "D:/Radiants/Projects/robofest-visitor-pass",
+      "port": 3000
+    }
+  ]
+}

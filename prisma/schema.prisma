@@ -1,0 +1,154 @@
+// RoboFest 2.0 — Visitor Pass Registration
+// Schema mirrors the tables already provisioned on Supabase Postgres
+// (see prisma/migrations/0001_init/migration.sql for the exact DDL applied).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  STAFF
+
+  @@map("admin_role")
+}
+
+enum VisitorType {
+  STUDENT
+  FACULTY
+  CONTENT_CREATOR
+  INDUSTRY_PROFESSIONAL
+  MEDIA
+  GUEST
+  OTHER
+
+  @@map("visitor_type")
+}
+
+enum ApplicationStatus {
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  CHECKED_IN
+
+  @@map("application_status")
+}
+
+enum EmailTemplateType {
+  REGISTRATION_RECEIVED
+  APPROVED
+  REJECTED
+  REMINDER
+
+  @@map("email_template_type")
+}
+
+enum EmailStatus {
+  QUEUED
+  SENT
+  FAILED
+
+  @@map("email_status")
+}
+
+model AdminUser {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String
+  role         AdminRole @default(STAFF)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  reviewedRegistrations  VisitorRegistration[] @relation("ReviewedBy")
+  checkedInRegistrations VisitorRegistration[] @relation("CheckedInBy")
+  checkInScans           CheckInRecord[]
+
+  @@map("admin_users")
+}
+
+model VisitorRegistration {
+  id                              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registrationId                  String    @unique @map("registration_id")
+  fullName                        String    @map("full_name")
+  phone                           String
+  email                           String
+  collegeName                     String    @map("college_name")
+  visitorType                     VisitorType @map("visitor_type")
+  authorizationLetterPath         String    @map("authorization_letter_path")
+  authorizationLetterOriginalName String    @map("authorization_letter_original_name")
+  authorizationLetterMimeType     String    @map("authorization_letter_mime_type")
+  authorizationLetterSizeBytes    Int       @map("authorization_letter_size_bytes")
+  purposeOfVisit                  String    @map("purpose_of_visit")
+  numberOfVisitors                Int       @default(1) @map("number_of_visitors")
+  status                          ApplicationStatus @default(UNDER_REVIEW)
+  rejectionReason                 String?   @map("rejection_reason")
+  adminNote                       String?   @map("admin_note")
+  qrToken                         String    @unique @map("qr_token")
+  reviewedById                    String?   @map("reviewed_by") @db.Uuid
+  reviewedAt                      DateTime? @map("reviewed_at") @db.Timestamptz
+  checkedInAt                     DateTime? @map("checked_in_at") @db.Timestamptz
+  checkedInById                   String?   @map("checked_in_by") @db.Uuid
+  createdAt                       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  reviewedBy    AdminUser?      @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  checkedInBy   AdminUser?      @relation("CheckedInBy", fields: [checkedInById], references: [id])
+  checkInRecords CheckInRecord[]
+  emailLogs     EmailLog[]
+
+  @@map("visitor_registrations")
+}
+
+model CheckInRecord {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registrationId String   @map("registration_id") @db.Uuid
+  scannedById    String?  @map("scanned_by") @db.Uuid
+  result         String
+  scannedAt      DateTime @default(now()) @map("scanned_at") @db.Timestamptz
+
+  registration VisitorRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  scannedBy    AdminUser?          @relation(fields: [scannedById], references: [id])
+
+  @@map("check_in_records")
+}
+
+model EmailLog {
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registrationId String?           @map("registration_id") @db.Uuid
+  toEmail        String            @map("to_email")
+  templateType   EmailTemplateType @map("template_type")
+  subject        String
+  bodyHtml       String            @map("body_html")
+  bodyText       String            @map("body_text")
+  status         EmailStatus       @default(QUEUED)
+  errorMessage   String?           @map("error_message")
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  sentAt         DateTime?         @map("sent_at") @db.Timestamptz
+
+  registration VisitorRegistration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+
+  @@map("email_logs")
+}
+
+model RegistrationCounter {
+  year    Int @id
+  counter Int @default(0)
+
+  @@map("registration_counters")
+}
+
+model RateLimitBucket {
+  key         String   @id
+  count       Int      @default(1)
+  windowStart DateTime @default(now()) @map("window_start") @db.Timestamptz
+
+  @@map("rate_limit_buckets")
+}
