@@ -3,7 +3,6 @@
 import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { UploadCloud, FileCheck2, X, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,7 @@ import {
   validateAuthorizationLetter,
   MAX_FILE_SIZE_BYTES,
 } from "@/lib/validation/registration";
-import { VISITOR_TYPE_LABELS, cn } from "@/lib/utils";
+import { VISITOR_TYPE_LABELS, cn, PAYMENT_LINK_URL } from "@/lib/utils";
 
 const STEP_FIELDS: (keyof RegistrationFieldsInput)[][] = [
   ["fullName", "phone", "email"],
@@ -37,7 +36,6 @@ const STEP_FIELDS: (keyof RegistrationFieldsInput)[][] = [
 ];
 
 export function RegistrationForm() {
-  const router = useRouter();
   const [step, setStep] = useState(1);
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -136,7 +134,8 @@ export function RegistrationForm() {
           status: json.status,
         })
       );
-      router.push(`/register/confirmation`);
+      toast.success("Registration received! Redirecting you to payment...");
+      window.location.href = PAYMENT_LINK_URL;
     } catch {
       toast.error("Network error. Please check your connection and try again.");
       setSubmitting(false);

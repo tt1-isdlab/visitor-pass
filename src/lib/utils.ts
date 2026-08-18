@@ -30,3 +30,6 @@ export const STATUS_LABELS: Record<string, string> = {
   REJECTED: "Rejected",
   CHECKED_IN: "Checked In",
 };
+
+export const PAYMENT_LINK_URL =
+  process.env.NEXT_PUBLIC_PAYMENT_LINK_URL ?? "https://rzp.io/rzp/rfvisitingpass";
