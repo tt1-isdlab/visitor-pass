@@ -44,16 +44,30 @@ Visit `http://localhost:3000` for the visitor registration form, and `/admin/log
 admin dashboard (login with the seeded admin credentials from `.env` — change the password after
 first login).
 
-### Setting up a *fresh* database (not the pre-provisioned one)
+### Setting up a *fresh* Supabase project (different account/org)
+
+Easiest path: create a new project in the Supabase dashboard, open its **SQL Editor**, and paste
+in the whole of [`prisma/supabase-setup.sql`](prisma/supabase-setup.sql) and run it once. That one
+script creates the full schema, the private `authorization-letters` storage bucket (5 MB limit,
+PDF/JPG/PNG only), and enables RLS — everything the app needs.
+
+Then update `.env` with that project's `DATABASE_URL` / `DIRECT_URL` (Settings → Database),
+`NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (Settings → API), and run:
 
 ```bash
-npx prisma migrate deploy   # applies prisma/migrations/0001_init
 npm run db:seed
 ```
 
-Also create a private Supabase Storage bucket named `authorization-letters` (or set
-`STORAGE_BUCKET` to your own bucket name), limited to 5 MB and `application/pdf`, `image/jpeg`,
-`image/png`.
+Equivalently, from the CLI instead of the SQL Editor:
+
+```bash
+npx prisma migrate deploy   # applies prisma/migrations/0001_init + 0002_enable_rls
+npm run db:seed
+```
+
+— but you'll still need to create the `authorization-letters` storage bucket yourself (Storage →
+New bucket → private, 5 MB limit, `application/pdf`/`image/jpeg`/`image/png`), since Prisma
+migrations only cover the database, not Storage.
 
 ## Environment variables
 
